@@ -107,9 +107,18 @@ class SharkCompiler extends TaskCompiler with LogHelper {
 
     var cacheMode = CacheType.NONE
     var shouldReset = false
+
     val qb: QB = pCtx.getQB
     val opParseCtx = pCtx.getOpParseCtx
     var _resSchema: JavaList[FieldSchema] = null
+
+    /*
+     * Step 1: Analyze create table.
+     * For a query for creating a table, if it is not CATS, we will not reach here.
+     * Can we use HiveSemanticAnalyzerHook? We can get current DB name from SessionState.get.getCurrentDatabase
+     * Seems work in SharkDDLSemanticAnalyzer can be done by a hook?
+     */
+
 
     // If the table descriptor can be null if the CTAS has an
     // "if not exists" condition.
