@@ -15,18 +15,21 @@
  * limitations under the License.
  */
 
-package shark
+package shark.execution
 
-import shark.execution.serialization.KryoSerializationWrapper
-import shark.execution.serialization.OperatorSerializationWrapper
+import shark.LogHelper
+import org.apache.hadoop.hive.ql.plan.TableDesc
 
+trait ReduceSinkTableDesc extends LogHelper {
+  self: Operator[_ <: HiveDesc] =>
 
-package object execution {
+  // Seq(tag, (Key TableDesc, Value TableDesc))
+  def keyValueDescs(): Seq[(Int, (TableDesc, TableDesc))] = {
+    // get the parent ReduceSinkOperator and sort it by tag
+    val reduceSinkOps = 
+      for (op <- self.parentOperators.toSeq; 
+        if (op.isInstanceOf[ReduceSinkOperator])) yield op.asInstanceOf[ReduceSinkOperator]
 
-  type HiveDesc = java.io.Serializable  // XXXDesc in Hive is the subclass of Serializable
-
-  implicit def opSerWrapper2op[T <: Operator[_ <: HiveDesc]](
-      wrapper: OperatorSerializationWrapper[T]): T = wrapper.value
-
-  implicit def kryoWrapper2object[T](wrapper: KryoSerializationWrapper[T]): T = wrapper.value
+    reduceSinkOps.map(f => (f.getTag, f.getKeyValueTableDescs))
+  }
 }

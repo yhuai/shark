@@ -15,19 +15,29 @@
  * limitations under the License.
  */
 
-package shark.execution
+package shark.memstore2
 
-import org.apache.hadoop.hive.ql.exec.{ForwardOperator => HiveForwardOperator}
+import shark.execution.RDDUtils
 
 import org.apache.spark.rdd.RDD
-import org.apache.hadoop.hive.ql.plan.ForwardDesc
+import org.apache.spark.storage.StorageLevel
 
 
-class ForwardOperator extends UnaryOperator[ForwardDesc] {
+/**
+ * A metadata container for a table in Shark that's backed by an RDD.
+ */
+private[shark]
+class MemoryTable(
+    tableName: String,
+    cacheMode: CacheType.CacheType,
+    preferredStorageLevel: StorageLevel)
+  extends Table(tableName, cacheMode, preferredStorageLevel) {
 
-  override def execute(): RDD[_] = executeParents().head._2
+  // RDD that contains the contents of this table.
+  private var _tableRDD: RDD[TablePartition] = _
 
-  override def processPartition(split: Int, iter: Iterator[_]) =
-    throw new UnsupportedOperationException("ForwardOperator.processPartition()")
+  def tableRDD: RDD[TablePartition] = _tableRDD
+
+  def tableRDD_= (rdd: RDD[TablePartition]) = _tableRDD = rdd
 
 }
