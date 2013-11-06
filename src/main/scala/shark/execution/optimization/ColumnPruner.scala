@@ -11,13 +11,13 @@ import org.apache.hadoop.hive.ql.metadata.Table
 import org.apache.hadoop.hive.ql.plan.SelectDesc
 import org.apache.hadoop.hive.ql.plan.{FilterDesc, MapJoinDesc, ReduceSinkDesc}
 
-import shark.execution.{FilterOperator, JoinOperator,
+import shark.execution.{FilterOperator, HiveOperator, JoinOperator,
   MapJoinOperator, Operator, ReduceSinkOperator,
   SelectOperator, TopOperator}
 import shark.memstore2.{ColumnarStruct, TablePartitionIterator}
 
 
-class ColumnPruner(@transient op: TopOperator[_], @transient tbl: Table) extends Serializable {
+class ColumnPruner(@transient op: TopOperator[_ <: HiveOperator], @transient tbl: Table) extends Serializable {
 
   val columnsUsed: BitSet = {
     val colsToKeep = computeColumnsToKeep()
@@ -38,8 +38,8 @@ class ColumnPruner(@transient op: TopOperator[_], @transient tbl: Table) extends
   /**
    * Computes the column names that are referenced in the Query
    */
-  private def computeColumnsToKeep(op: Operator[_],
-    cols: HashSet[String], parentOp: Operator[_] = null): Unit = {
+  private def computeColumnsToKeep(op: Operator[_ <: HiveOperator],
+    cols: HashSet[String], parentOp: Operator[_ <: HiveOperator] = null): Unit = {
     def nullGuard[T](s: JList[T]): Seq[T] = {
       if (s == null) Seq[T]() else s
     }

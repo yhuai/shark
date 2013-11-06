@@ -28,9 +28,9 @@ object SharkBuild extends Build {
   // Shark version
   val SHARK_VERSION = "0.8.0"
 
-  val SPARK_VERSION = "0.8.0-incubating"
+  val SPARK_VERSION = "0.9.0-incubating-SNAPSHOT"
 
-  val SCALA_VERSION = "2.9.3"
+  val SCALA_VERSION = "2.10.3"
 
   // Hadoop version to build against. For example, "0.20.2", "0.20.205.0", or
   // "1.0.1" for Apache releases, or "0.20.2-cdh3u3" for Cloudera Hadoop.

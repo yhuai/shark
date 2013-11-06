@@ -394,7 +394,7 @@ object SharkSemanticAnalyzer extends LogHelper {
    */
   private def breakHivePlanByStages(terminalOps: Seq[TerminalOperator]) = {
     val reduceSinks = new scala.collection.mutable.HashSet[ReduceSinkOperator]
-    val queue = new scala.collection.mutable.Queue[Operator[_]]
+    val queue = new scala.collection.mutable.Queue[Operator[_ <: HiveOperator]]
     queue ++= terminalOps
 
     while (!queue.isEmpty) {

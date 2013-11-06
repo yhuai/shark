@@ -29,7 +29,7 @@ class JavaTableRDD(val rdd: RDD[Row], val schema: Array[ColumnDesc])
   override def wrapRDD(rdd: RDD[Row]): JavaTableRDD = new JavaTableRDD(rdd, schema)
 
   // Common RDD functions
-  override val classManifest: ClassManifest[Row] = implicitly[ClassManifest[Row]]
+  override val classTag= reflect.ClassTag(classOf[Row]).asInstanceOf[reflect.ClassTag[Row]]
 
   // This shouldn't be necessary, but we seem to need this to get first() to return Row
   // instead of Object; possibly a compiler bug?

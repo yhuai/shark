@@ -71,7 +71,7 @@ object OperatorFactory extends LogHelper {
   }
 
   /** Create a Shark operator given the Hive operator. */
-  private def createSingleOperator(hiveOp: HiveOperator): Operator[_] = {
+  private def createSingleOperator(hiveOp: HiveOperator): Operator[_ <: HiveOperator] = {
     // This is kind of annoying, but it works with strong typing ...
     val sharkOp = hiveOp match {
       case hop: org.apache.hadoop.hive.ql.exec.TableScanOperator =>
@@ -120,13 +120,13 @@ object OperatorFactory extends LogHelper {
   }
 
   private def _newOperatorInstance[T <: HiveOperator](
-      cls: Class[_ <: Operator[T]], hiveOp: HiveOperator): Operator[_] = {
+      cls: Class[_ <: Operator[T]], hiveOp: HiveOperator): Operator[_ <: HiveOperator] = {
     val op = cls.newInstance()
     op.hiveOp = hiveOp.asInstanceOf[T]
     op
   }
 
-  private def _createAndSetParents(op: Operator[_], parents: Seq[HiveOperator]) = {
+  private def _createAndSetParents(op: Operator[_ <: HiveOperator], parents: Seq[HiveOperator]) = {
     if (parents != null) {
       parents foreach { parent =>
         _createOperatorTree(parent).addChild(op)
@@ -139,7 +139,7 @@ object OperatorFactory extends LogHelper {
    * Given a terminal operator in Hive, create the plan that uses Shark physical
    * operators.
    */
-  private def _createOperatorTree(hiveOp: HiveOperator): Operator[_] = {
+  private def _createOperatorTree(hiveOp: HiveOperator): Operator[_ <: HiveOperator] = {
     val current = createSingleOperator(hiveOp)
     val parents = hiveOp.getParentOperators
     if (parents != null) {

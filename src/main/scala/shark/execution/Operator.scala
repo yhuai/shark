@@ -79,18 +79,18 @@ abstract class Operator[T <: HiveOperator] extends LogHelper with Serializable {
    * Return the parent operators as a Java List. This is for interoperability
    * with Java. We use this in explain's Java code.
    */
-  def parentOperatorsAsJavaList: JavaList[Operator[_]] = _parentOperators
+  def parentOperatorsAsJavaList: JavaList[Operator[_ <: HiveOperator]] = _parentOperators
 
-  def addParent(parent: Operator[_]) {
+  def addParent(parent: Operator[_ <: HiveOperator]) {
     _parentOperators += parent
     parent.childOperators += this
   }
 
-  def addChild(child: Operator[_]) {
+  def addChild(child: Operator[_ <: HiveOperator]) {
     child.addParent(this)
   }
 
-  def returnTerminalOperators(): Seq[Operator[_]] = {
+  def returnTerminalOperators(): Seq[Operator[_ <: HiveOperator]] = {
     if (_childOperators == null || _childOperators.size == 0) {
       Seq(this)
     } else {
@@ -98,7 +98,7 @@ abstract class Operator[T <: HiveOperator] extends LogHelper with Serializable {
     }
   }
 
-  def returnTopOperators(): Seq[Operator[_]] = {
+  def returnTopOperators(): Seq[Operator[_ <: HiveOperator]] = {
     if (_parentOperators == null || _parentOperators.size == 0) {
       Seq(this)
     } else {
@@ -107,8 +107,8 @@ abstract class Operator[T <: HiveOperator] extends LogHelper with Serializable {
   }
 
   @transient var hiveOp: T = _
-  @transient private val _childOperators = new ArrayBuffer[Operator[_]]()
-  @transient private val _parentOperators = new ArrayBuffer[Operator[_]]()
+  @transient private val _childOperators = new ArrayBuffer[Operator[_ <: HiveOperator]]()
+  @transient private val _parentOperators = new ArrayBuffer[Operator[_ <: HiveOperator]]()
   @transient var objectInspectors = new ArrayBuffer[ObjectInspector]
 
   protected def executeParents(): Seq[(Int, RDD[_])] = {
