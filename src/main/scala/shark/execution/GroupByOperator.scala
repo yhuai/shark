@@ -29,7 +29,7 @@ import org.apache.hadoop.hive.ql.plan.GroupByDesc
  *
  * These two classes are defined in org.apache.hadoop.hive.ql.exec package
  * (scala files) to get around the problem that some Hive classes are only
- * visibile within that class.
+ * visible within that class.
  */
 object GroupByOperator {
   
