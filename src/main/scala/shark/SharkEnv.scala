@@ -19,10 +19,9 @@ package shark
 
 import scala.collection.mutable.{HashMap, HashSet}
 
-import org.apache.spark.{SparkContext, SparkEnv}
+import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.scheduler.StatsReportListener
-import org.apache.spark.serializer.{KryoSerializer => SparkKryoSerializer}
 
 import shark.api.JavaSharkContext
 import shark.memstore2.MemoryMetadataManager
@@ -36,11 +35,11 @@ object SharkEnv extends LogHelper {
   def init(): SparkContext = {
     if (sc == null) {
       sc = new SparkContext(
-          if (System.getenv("MASTER") == null) "local" else System.getenv("MASTER"),
-          "Shark::" + java.net.InetAddress.getLocalHost.getHostName,
-          System.getenv("SPARK_HOME"),
-          Nil,
-          executorEnvVars)
+        if (System.getenv("MASTER") == null) "local" else System.getenv("MASTER"),
+        "Shark::" + java.net.InetAddress.getLocalHost.getHostName,
+        System.getenv("SPARK_HOME"),
+        Nil,
+        executorEnvVars)
       sc.addSparkListener(new StatsReportListener())
     }
     sc
@@ -49,22 +48,22 @@ object SharkEnv extends LogHelper {
   def initWithSharkContext(jobName: String, master: String = System.getenv("MASTER"))
     : SharkContext = {
     if (sc != null) {
-      sc.stop
+      sc.stop()
     }
 
     sc = new SharkContext(
-        if (master == null) "local" else master,
-        jobName,
-        System.getenv("SPARK_HOME"),
-        Nil,
-        executorEnvVars)
+      if (master == null) "local" else master,
+      jobName,
+      System.getenv("SPARK_HOME"),
+      Nil,
+      executorEnvVars)
     sc.addSparkListener(new StatsReportListener())
     sc.asInstanceOf[SharkContext]
   }
 
   def initWithSharkContext(newSc: SharkContext): SharkContext = {
     if (sc != null) {
-      sc.stop
+      sc.stop()
     }
 
     sc = newSc
@@ -84,9 +83,6 @@ object SharkEnv extends LogHelper {
   }
 
   logDebug("Initializing SharkEnv")
-
-  System.setProperty("spark.serializer", classOf[SparkKryoSerializer].getName)
-  System.setProperty("spark.kryo.registrator", classOf[KryoRegistrator].getName)
 
   val executorEnvVars = new HashMap[String, String]
   executorEnvVars.put("SCALA_HOME", getEnv("SCALA_HOME"))
@@ -114,16 +110,24 @@ object SharkEnv extends LogHelper {
   val addedFiles = HashSet[String]()
   val addedJars = HashSet[String]()
 
-  def unpersist(key: String): Option[RDD[_]] = {
-    if (SharkEnv.tachyonUtil.tachyonEnabled() && SharkEnv.tachyonUtil.tableExists(key)) {
-      if (SharkEnv.tachyonUtil.dropTable(key)) {
-        logInfo("Table " + key + " was deleted from Tachyon.");
+  /**
+   * Drops the table associated with 'key'. This method checks for Tachyon tables before
+   * delegating to MemoryMetadataManager#removeTable() for removing the table's entry from the
+   * Shark metastore.
+   *
+   * @param tableName The table that should be dropped from the Shark metastore and from memory
+   *                  storage.
+   */
+  def dropTable(databaseName: String, tableName: String): Option[RDD[_]] = {
+    val tableKey = makeTachyonTableKey(databaseName, tableName)
+    if (SharkEnv.tachyonUtil.tachyonEnabled() && SharkEnv.tachyonUtil.tableExists(tableKey)) {
+      if (SharkEnv.tachyonUtil.dropTable(tableKey)) {
+        logInfo("Table " + tableKey + " was deleted from Tachyon.");
       } else {
-        logWarning("Failed to remove table " + key + " from Tachyon.");
+        logWarning("Failed to remove table " + tableKey + " from Tachyon.");
       }
     }
-
-    memoryMetadataManager.unpersist(key)
+    return memoryMetadataManager.removeTable(databaseName, tableName)
   }
 
   /** Cleans up and shuts down the Shark environments. */
@@ -138,6 +142,15 @@ object SharkEnv extends LogHelper {
 
   /** Return the value of an environmental variable as a string. */
   def getEnv(varname: String) = if (System.getenv(varname) == null) "" else System.getenv(varname)
+
+  /**
+   * Return an identifier for RDDs that back tables stored in Tachyon. The format is
+   * "databaseName.tableName".
+   */
+  def makeTachyonTableKey(databaseName: String, tableName: String): String = {
+    (databaseName + "." + tableName).toLowerCase
+  }
+
 }
 
 

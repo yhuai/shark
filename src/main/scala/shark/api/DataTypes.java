@@ -17,8 +17,14 @@
 
 package shark.api;
 
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.sql.Timestamp;
+
+import scala.reflect.ClassTag;
+import scala.reflect.ClassTag$;
+import scala.reflect.ClassManifestFactory;
 
 import org.apache.hadoop.hive.serde.Constants;
 
@@ -30,19 +36,38 @@ public class DataTypes {
   // This list of types are defined in a Java class for better interoperability with Shark's
   // Java APIs.
   // Primitive types:
-  public static final DataType BOOLEAN = new DataType("boolean", Constants.BOOLEAN_TYPE_NAME, true);
-  public static final DataType TINYINT = new DataType("tinyint", Constants.TINYINT_TYPE_NAME, true);
-  public static final DataType SMALLINT =
-      new DataType("smallint", Constants.SMALLINT_TYPE_NAME, true);
-  public static final DataType INT = new DataType("int", Constants.INT_TYPE_NAME, true);
-  public static final DataType BIGINT = new DataType("bigint", Constants.BIGINT_TYPE_NAME, true);
-  public static final DataType FLOAT = new DataType("float", Constants.FLOAT_TYPE_NAME, true);
-  public static final DataType DOUBLE = new DataType("double", Constants.DOUBLE_TYPE_NAME, true);
-  public static final DataType STRING = new DataType("string", Constants.STRING_TYPE_NAME, true);
-  public static final DataType TIMESTAMP =
-      new DataType("timestamp", Constants.TIMESTAMP_TYPE_NAME, true);
-  public static final DataType DATE = new DataType("date", Constants.DATE_TYPE_NAME, true);
-  public static final DataType BINARY = new DataType("binary", Constants.BINARY_TYPE_NAME, true);
+  public static final DataType BOOLEAN = new DataType(
+      "boolean", Constants.BOOLEAN_TYPE_NAME, true);
+
+  public static final DataType TINYINT = new DataType(
+      "tinyint", Constants.TINYINT_TYPE_NAME, true);
+
+  public static final DataType SMALLINT = new DataType(
+      "smallint", Constants.SMALLINT_TYPE_NAME, true);
+
+  public static final DataType INT = new DataType(
+      "int", Constants.INT_TYPE_NAME, true);
+
+  public static final DataType BIGINT = new DataType(
+      "bigint", Constants.BIGINT_TYPE_NAME, true);
+
+  public static final DataType FLOAT = new DataType(
+      "float", Constants.FLOAT_TYPE_NAME, true);
+
+  public static final DataType DOUBLE = new DataType(
+      "double", Constants.DOUBLE_TYPE_NAME, true);
+
+  public static final DataType STRING = new DataType(
+      "string", Constants.STRING_TYPE_NAME, true);
+
+  public static final DataType TIMESTAMP = new DataType(
+      "timestamp", Constants.TIMESTAMP_TYPE_NAME, true);
+
+  public static final DataType DATE = new DataType(
+      "date", Constants.DATE_TYPE_NAME, true);
+
+  public static final DataType BINARY = new DataType(
+      "binary", Constants.BINARY_TYPE_NAME, true);
 
   // Complex types:
   // TODO: handle complex types.
@@ -81,5 +106,36 @@ public class DataTypes {
     } else {
       return type;
     }
+  }
+
+  public static DataType fromManifest(ClassTag<?> m) throws UnknownDataTypeException {
+    if (m.equals(m(Boolean.class)) || m.equals(ClassManifestFactory.Boolean())) {
+      return INT;
+    } else if (m.equals(m(Byte.class)) || m.equals(ClassManifestFactory.Byte())) {
+      return TINYINT;
+    } else if (m.equals(m(Short.class)) || m.equals(ClassManifestFactory.Short())) {
+      return SMALLINT;
+    } else if (m.equals(m(Integer.class)) || m.equals(ClassManifestFactory.Int())) {
+      return INT;
+    } else if (m.equals(m(Long.class)) || m.equals(ClassManifestFactory.Long())) {
+      return BIGINT;
+    } else if (m.equals(m(Float.class)) || m.equals(ClassManifestFactory.Float())) {
+      return FLOAT;
+    } else if (m.equals(m(Double.class)) || m.equals(ClassManifestFactory.Double())) {
+      return DOUBLE;
+    } else if (m.equals(m(String.class))) {
+      return STRING;
+    } else if (m.equals(m(Timestamp.class))) {
+      return TIMESTAMP;
+    } else if (m.equals(m(Date.class))) {
+      return DATE;
+    } else {
+      throw new UnknownDataTypeException(m.toString());
+    }
+    // TODO: binary data type.
+  }
+
+  private static <T> ClassTag<T> m(Class<T> cls) {
+    return ClassTag$.MODULE$.apply(cls);
   }
 }
