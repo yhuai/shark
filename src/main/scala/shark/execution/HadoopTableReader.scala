@@ -72,7 +72,7 @@ class HadoopTableReader(@transient _tableDesc: TableDesc, @transient _localHConf
     val tablePath = hiveTable.getPath
     val inputPathStr = applyFilterIfNeeded(tablePath, filterOpt)
 
-    logDebug("Table input: %s".format(tablePath))
+    logWarning("Table input: %s".format(tablePath))
     val ifc = hiveTable.getInputFormatClass
       .asInstanceOf[java.lang.Class[InputFormat[Writable, Writable]]]
     val hadoopRDD = createHadoopRdd(tableDesc, inputPathStr, ifc)
@@ -176,11 +176,16 @@ class HadoopTableReader(@transient _tableDesc: TableDesc, @transient _localHConf
       path: String,
       inputFormatClass: Class[InputFormat[Writable, Writable]])
     : RDD[Writable] = {
+    logWarning("INPUT PATH: " + path)
     val initializeJobConfFunc = HadoopTableReader.initializeLocalJobConfFunc(path, tableDesc) _
+
+    // TODO DELETE WHEN ON SPARK MASTER
+    val localConf = new JobConf()
+    initializeJobConfFunc(new JobConf)
 
     val rdd = new HadoopRDD(
       SharkEnv.sc,
-      _broadcastedHiveConf.asInstanceOf[Broadcast[SerializableWritable[Configuration]]],
+      localConf, //_broadcastedHiveConf //.asInstanceOf[Broadcast[SerializableWritable[Configuration]]],
       // Some(initializeJobConfFunc),
       inputFormatClass,
       classOf[Writable],
