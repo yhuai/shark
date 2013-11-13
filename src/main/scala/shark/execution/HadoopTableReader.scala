@@ -181,7 +181,7 @@ class HadoopTableReader(@transient _tableDesc: TableDesc, @transient _localHConf
 
     // TODO DELETE WHEN ON SPARK MASTER
     val localConf = new JobConf()
-    initializeJobConfFunc(new JobConf)
+    initializeJobConfFunc(localConf)
 
     val rdd = new HadoopRDD(
       SharkEnv.sc,
