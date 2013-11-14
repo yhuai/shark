@@ -19,14 +19,10 @@ package shark.execution
 
 import java.util.{ArrayList, HashMap => JHashMap, List => JList}
 
-import scala.collection.mutable.ArrayBuffer
 import scala.collection.JavaConversions._
 import scala.reflect.BeanProperty
 
-import org.apache.hadoop.io.BytesWritable
-
 import org.apache.hadoop.hive.ql.exec.{ExprNodeEvaluator, JoinUtil => HiveJoinUtil}
-import org.apache.hadoop.hive.ql.exec.{MapJoinOperator => HiveMapJoinOperator}
 import org.apache.hadoop.hive.ql.plan.MapJoinDesc
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector
@@ -152,7 +148,6 @@ class MapJoinOperator extends CommonJoinOperator[MapJoinDesc] {
 
       // Collect the RDD and build a hash table.
       val startCollect = System.currentTimeMillis()
-
       val collectedRows: Array[(Seq[AnyRef], Seq[Array[AnyRef]])] = rddForHash.collect()
 
       logDebug("collectedRows size:" + collectedRows.size)

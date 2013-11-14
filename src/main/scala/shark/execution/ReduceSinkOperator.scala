@@ -23,14 +23,12 @@ import scala.collection.Iterator
 import scala.collection.JavaConversions._
 import scala.reflect.BeanProperty
 
-import org.apache.hadoop.hive.conf.HiveConf
-import org.apache.hadoop.hive.ql.exec.{ReduceSinkOperator => HiveReduceSinkOperator}
 import org.apache.hadoop.hive.ql.exec.{ExprNodeEvaluator, ExprNodeEvaluatorFactory}
-import org.apache.hadoop.hive.ql.metadata.HiveException
 import org.apache.hadoop.hive.ql.plan.ReduceSinkDesc
 import org.apache.hadoop.hive.serde2.SerDe
-import org.apache.hadoop.hive.serde2.objectinspector.{ObjectInspector, ObjectInspectorFactory,
-  ObjectInspectorUtils}
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils
 import org.apache.hadoop.hive.serde2.objectinspector.StandardUnionObjectInspector.StandardUnion
 import org.apache.hadoop.io.BytesWritable
 
@@ -92,8 +90,7 @@ class ReduceSinkOperator extends UnaryOperator[ReduceSinkDesc] {
     val ois = new ArrayList[ObjectInspector]
     ois.add(keySer.getObjectInspector)
     ois.add(valueSer.getObjectInspector)
-
-    ObjectInspectorFactory.getStandardStructObjectInspector(List("KEY","VALUE"), ois)
+    ObjectInspectorFactory.getStandardStructObjectInspector(List("KEY", "VALUE"), ois)
   }
 
   // will be used of the children operators (in JoinOperator/Extractor/GroupByPostShuffleOperator

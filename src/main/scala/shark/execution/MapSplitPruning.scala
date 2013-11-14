@@ -17,20 +17,16 @@
 
 package org.apache.hadoop.hive.ql.exec
 
-import java.sql.Timestamp
-
-import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPOr
-import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPAnd
-import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPEqual
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFBaseCompare
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFBetween
-import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPGreaterThan
-import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPLessThan
+import org.apache.hadoop.hive.ql.udf.generic.GenericUDFIn
+import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPAnd
+import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPEqual
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPEqualOrGreaterThan
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPEqualOrLessThan
-import org.apache.hadoop.hive.ql.udf.generic.GenericUDFIn
-import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector
-import org.apache.hadoop.io.Text
+import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPGreaterThan
+import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPLessThan
+import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPOr
 
 import shark.memstore2.ColumnarStructObjectInspector.IDStructField
 import shark.memstore2.TablePartitionStats
@@ -70,7 +66,10 @@ object MapSplitPruning {
               }
 
             case _: GenericUDFIn =>
-              testInPredicate(s, e.children(0).asInstanceOf[ExprNodeColumnEvaluator], e.children.drop(1))
+              testInPredicate(
+                s,
+                e.children(0).asInstanceOf[ExprNodeColumnEvaluator],
+                e.children.drop(1))
             case udf: GenericUDFBaseCompare =>
               testComparisonPredicate(s, udf, e.children(0), e.children(1))
             case _ => true
@@ -115,13 +114,14 @@ object MapSplitPruning {
     val invertValue: Boolean = invertEval.expr.getValue.asInstanceOf[Boolean]
 
     if (columnStats != null) {
-       val exists = (columnStats :>< (leftValue , rightValue))
-       if (invertValue) !exists else exists
-      } else {
-        // If there is no stats on the column, don't prune.
-        true
-      }
+      val exists = (columnStats :>< (leftValue , rightValue))
+      if (invertValue) !exists else exists
+    } else {
+      // If there is no stats on the column, don't prune.
+      true
+    }
   }
+
   /**
    * Test whether we should keep the split as a candidate given the comparison
    * predicate. Return true if the split should be kept as a candidate, false if
@@ -135,19 +135,23 @@ object MapSplitPruning {
 
     // Try to get the column evaluator.
     val columnEval: ExprNodeColumnEvaluator =
-      if (left.isInstanceOf[ExprNodeColumnEvaluator])
+      if (left.isInstanceOf[ExprNodeColumnEvaluator]) {
         left.asInstanceOf[ExprNodeColumnEvaluator]
-      else if (right.isInstanceOf[ExprNodeColumnEvaluator])
+      } else if (right.isInstanceOf[ExprNodeColumnEvaluator]) {
         right.asInstanceOf[ExprNodeColumnEvaluator]
-      else null
+      } else {
+        null
+      }
 
     // Try to get the constant value.
     val constEval: ExprNodeConstantEvaluator =
-      if (left.isInstanceOf[ExprNodeConstantEvaluator])
+      if (left.isInstanceOf[ExprNodeConstantEvaluator]) {
         left.asInstanceOf[ExprNodeConstantEvaluator]
-      else if (right.isInstanceOf[ExprNodeConstantEvaluator])
+      } else if (right.isInstanceOf[ExprNodeConstantEvaluator]) {
         right.asInstanceOf[ExprNodeConstantEvaluator]
-      else null
+      } else {
+        null
+      }
 
     if (columnEval != null && constEval != null) {
       // We can prune the partition only if it is a predicate of form
