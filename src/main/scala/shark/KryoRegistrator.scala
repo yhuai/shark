@@ -36,12 +36,6 @@ class KryoRegistrator extends SparkKryoRegistrator {
 
     kryo.register(classOf[execution.ReduceKey])
 
-    // The map join data structures are Java serializable.
-    kryo.register(classOf[MapJoinSingleKey], new KryoJavaSerializer)
-    kryo.register(classOf[MapJoinObjectKey], new KryoJavaSerializer)
-    kryo.register(classOf[MapJoinDoubleKeys], new KryoJavaSerializer)
-    kryo.register(classOf[MapJoinObjectValue], new KryoJavaSerializer)
-
     // As far as I (rxin), among all Hadoop writables only TimestampWritable
     // cannot be serialized by Kryo out of the box.
     kryo.register(classOf[org.apache.hadoop.hive.serde2.io.TimestampWritable],
