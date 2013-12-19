@@ -17,14 +17,14 @@
 
 package shark.execution
 
-import java.util.{HashMap => JavaHashMap, List => JavaList, ArrayList =>JavaArrayList}
+import java.util.{List => JavaList, ArrayList =>JavaArrayList}
 
 import scala.beans.BeanProperty
 import scala.reflect.ClassTag
 
 import org.apache.hadoop.hive.ql.exec.ExprNodeEvaluator
 import org.apache.hadoop.hive.ql.exec.{JoinUtil => HiveJoinUtil}
-import org.apache.hadoop.hive.ql.plan.{JoinCondDesc, JoinDesc}
+import org.apache.hadoop.hive.ql.plan.{JoinCondDesc, JoinDesc, ExprNodeDesc}
 import org.apache.hadoop.hive.serde2.objectinspector.{ObjectInspector, PrimitiveObjectInspector}
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory
 
@@ -42,15 +42,17 @@ abstract class CommonJoinOperator[T <: JoinDesc] extends NaryOperator[T] {
   @BeanProperty var nullCheck: Boolean = _
 
   @transient
-  var joinVals: JavaHashMap[java.lang.Byte, JavaList[ExprNodeEvaluator]] = _
+  var tagLen: Int = _
   @transient
-  var joinFilters: JavaHashMap[java.lang.Byte, JavaList[ExprNodeEvaluator]] = _
+  var joinVals: Array[JavaList[ExprNodeEvaluator[_ <: ExprNodeDesc]]] = _
   @transient
-  var joinValuesObjectInspectors: JavaHashMap[java.lang.Byte, JavaList[ObjectInspector]] = _
+  var joinFilters: Array[JavaList[ExprNodeEvaluator[_ <: ExprNodeDesc]]] = _
   @transient
-  var joinFilterObjectInspectors: JavaHashMap[java.lang.Byte, JavaList[ObjectInspector]] = _
+  var joinValuesObjectInspectors: Array[JavaList[ObjectInspector]] = _
   @transient
-  var joinValuesStandardObjectInspectors: JavaHashMap[java.lang.Byte, JavaList[ObjectInspector]] = _
+  var joinFilterObjectInspectors: Array[JavaList[ObjectInspector]] = _
+  @transient
+  var joinValuesStandardObjectInspectors: Array[JavaList[ObjectInspector]] = _
 
   @transient var noOuterJoin: Boolean = _
 
@@ -72,27 +74,28 @@ abstract class CommonJoinOperator[T <: JoinDesc] extends NaryOperator[T] {
 
     noOuterJoin = conf.isNoOuterJoin
 
-    joinVals = new JavaHashMap[java.lang.Byte, JavaList[ExprNodeEvaluator]]
+    tagLen = conf.getTagLength()
+    joinVals = new Array[JavaList[ExprNodeEvaluator[_ <: ExprNodeDesc]]](tagLen)
     HiveJoinUtil.populateJoinKeyValue(
       joinVals, conf.getExprs(), order, CommonJoinOperator.NOTSKIPBIGTABLE)
 
-    joinFilters = new JavaHashMap[java.lang.Byte, JavaList[ExprNodeEvaluator]]
+    joinFilters = new Array[JavaList[ExprNodeEvaluator[_ <: ExprNodeDesc]]](tagLen)
     HiveJoinUtil.populateJoinKeyValue(
       joinFilters, conf.getFilters(), order, CommonJoinOperator.NOTSKIPBIGTABLE)
 
     joinValuesObjectInspectors = HiveJoinUtil.getObjectInspectorsFromEvaluators(
-      joinVals, objectInspectors.toArray, CommonJoinOperator.NOTSKIPBIGTABLE)
+      joinVals, objectInspectors.toArray, CommonJoinOperator.NOTSKIPBIGTABLE, tagLen)
     joinFilterObjectInspectors = HiveJoinUtil.getObjectInspectorsFromEvaluators(
-      joinFilters, objectInspectors.toArray, CommonJoinOperator.NOTSKIPBIGTABLE)
+      joinFilters, objectInspectors.toArray, CommonJoinOperator.NOTSKIPBIGTABLE, tagLen)
     joinValuesStandardObjectInspectors = HiveJoinUtil.getStandardObjectInspectors(
-      joinValuesObjectInspectors, CommonJoinOperator.NOTSKIPBIGTABLE)
+      joinValuesObjectInspectors, CommonJoinOperator.NOTSKIPBIGTABLE, tagLen)
   }
   
   // copied from the org.apache.hadoop.hive.ql.exec.CommonJoinOperator
   override def outputObjectInspector() = {
     var structFieldObjectInspectors = new JavaArrayList[ObjectInspector]()
     for (alias <- order) {
-      var oiList = joinValuesStandardObjectInspectors.get(alias)
+      var oiList = joinValuesStandardObjectInspectors(alias.toInt)
       structFieldObjectInspectors.addAll(oiList)
     }
 
@@ -209,8 +212,9 @@ object CommonJoinOperator {
   /**
    * Handles join filters in Hive. It is kind of buggy and not used at the moment.
    */
-  def isFiltered(row: Any, filters: JavaList[ExprNodeEvaluator], ois: JavaList[ObjectInspector])
-  : Boolean = {
+  def isFiltered(row: Any,
+    filters: JavaList[ExprNodeEvaluator[_ <: ExprNodeDesc]],
+    ois: JavaList[ObjectInspector]): Boolean = {
     // if no filter, then will not be filtered
     if (filters == null || ois == null) return false
     

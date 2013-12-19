@@ -22,7 +22,7 @@ import scala.reflect.BeanProperty
 import org.apache.hadoop.hive.conf.HiveConf
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector
 import org.apache.hadoop.hive.ql.exec.{ExprNodeEvaluator, ExprNodeEvaluatorFactory}
-import org.apache.hadoop.hive.ql.plan.{ExtractDesc, TableDesc}
+import org.apache.hadoop.hive.ql.plan.{ExprNodeDesc, ExtractDesc, TableDesc}
 import org.apache.hadoop.hive.serde2.Deserializer
 import org.apache.hadoop.io.BytesWritable
 
@@ -36,7 +36,7 @@ class ExtractOperator extends UnaryOperator[ExtractDesc]
   @BeanProperty var valueTableDesc: TableDesc = _
   @BeanProperty var localHconf: HiveConf = _
 
-  @transient var eval: ExprNodeEvaluator = _
+  @transient var eval: ExprNodeEvaluator[_ <: ExprNodeDesc] = _
   @transient var valueDeser: Deserializer = _
 
   override def initializeOnMaster() {

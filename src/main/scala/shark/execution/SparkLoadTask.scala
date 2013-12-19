@@ -30,7 +30,7 @@ import org.apache.hadoop.hive.ql.{Context, DriverContext}
 import org.apache.hadoop.hive.ql.exec.{Task => HiveTask, Utilities}
 import org.apache.hadoop.hive.ql.metadata.{Hive, Partition, Table => HiveTable}
 import org.apache.hadoop.hive.ql.plan.api.StageType
-import org.apache.hadoop.hive.serde.Constants;
+import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.objectinspector.{ObjectInspector, StructObjectInspector}
 import org.apache.hadoop.io.Writable
 import org.apache.hadoop.mapred.{FileInputFormat, InputFormat}
@@ -256,7 +256,7 @@ class SparkLoadTask extends HiveTask[SparkLoadWork] with Serializable with LogHe
     val databaseName = hiveTable.getDbName
     val tableName = hiveTable.getTableName
     val memoryTable = getOrCreateMemoryTable(hiveTable)
-    val tableSchema = hiveTable.getSchema
+    val tableSchema = hiveTable.getMetadata
     val serDe = hiveTable.getDeserializer
     serDe.initialize(conf, tableSchema)
     // Scan the Hive table's data directory.
@@ -383,7 +383,6 @@ class SparkLoadTask extends HiveTask[SparkLoadWork] with Serializable with LogHe
 
   override def getName = "MAPRED-LOAD-SPARK"
 
-  override def localizeMRTmpFilesImpl(ctx: Context) = Unit
 }
 
 
@@ -398,24 +397,24 @@ object SparkLoadTask {
       baseSerDeProps: Properties): Properties = {
     val serDeProps = new Properties(baseSerDeProps)
 
-    // Column names specified by the Constants.LIST_COLUMNS key are delimited by ",".
+    // Column names specified by the serdeConstants.LIST_COLUMNS key are delimited by ",".
     // E.g., for a table created from
     //   CREATE TABLE page_views(key INT, val BIGINT), PARTITIONED BY (dt STRING, country STRING),
     // `columnNameProperties` will be "key,val". We want to append the "dt, country" partition
-    // column names to it, and reset the Constants.LIST_COLUMNS entry in the SerDe properties.
-    var columnNameProperties: String = serDeProps.getProperty(Constants.LIST_COLUMNS)
+    // column names to it, and reset the serdeConstants.LIST_COLUMNS entry in the SerDe properties.
+    var columnNameProperties: String = serDeProps.getProperty(serdeConstants.LIST_COLUMNS)
     columnNameProperties += "," + partCols.mkString(",")
-    serDeProps.setProperty(Constants.LIST_COLUMNS, columnNameProperties)
+    serDeProps.setProperty(serdeConstants.LIST_COLUMNS, columnNameProperties)
 
     // `None` if column types are missing. By default, Hive SerDeParameters initialized by the
     // ColumnarSerDe will treat all columns as having string types.
-    // Column types specified by the Constants.LIST_COLUMN_TYPES key are delimited by ":"
+    // Column types specified by the serdeConstants.LIST_COLUMN_TYPES key are delimited by ":"
     // E.g., for the CREATE TABLE example above, if `columnTypeProperties` is defined, then it
     // will be "int:bigint". Partition columns are strings, so "string:string" should be appended.
-    val columnTypePropertiesOpt = Option(serDeProps.getProperty(Constants.LIST_COLUMN_TYPES))
+    val columnTypePropertiesOpt = Option(serDeProps.getProperty(serdeConstants.LIST_COLUMN_TYPES))
     columnTypePropertiesOpt.foreach { columnTypeProperties =>
-      serDeProps.setProperty(Constants.LIST_COLUMN_TYPES,
-        columnTypeProperties + (":" + Constants.STRING_TYPE_NAME * partCols.size))
+      serDeProps.setProperty(serdeConstants.LIST_COLUMN_TYPES,
+        columnTypeProperties + (":" + serdeConstants.STRING_TYPE_NAME * partCols.size))
     }
     serDeProps
   }

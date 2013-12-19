@@ -25,7 +25,7 @@ import scala.collection.JavaConversions._
 import scala.reflect.BeanProperty
 
 import org.apache.hadoop.hive.conf.HiveConf
-import org.apache.hadoop.hive.ql.plan.{ExprNodeColumnDesc, TableDesc}
+import org.apache.hadoop.hive.ql.plan.{ExprNodeDesc, ExprNodeColumnDesc, TableDesc}
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator.AggregationBuffer
 import org.apache.hadoop.hive.serde2.objectinspector.{ObjectInspector, ObjectInspectorUtils,
   StandardStructObjectInspector, StructObjectInspector, UnionObject}
@@ -63,7 +63,7 @@ class GroupByPostShuffleOperator extends GroupByPreShuffleOperator
   @transient val nonDistinctAggrs = new JArrayList[Int]()
   @transient val distinctKeyWrapperFactories = new JHashMap[Int, JArrayList[KeyWrapperFactory]]()
   @transient val distinctHashSets = new JHashMap[Int, JArrayList[JHashSet[KeyWrapper]]]()
-  @transient var unionExprEvaluator: ExprNodeEvaluator = _
+  @transient var unionExprEvaluator: ExprNodeEvaluator[_ <: ExprNodeDesc] = _
 
   override def createLocals() {
     super.createLocals()
@@ -113,9 +113,10 @@ class GroupByPostShuffleOperator extends GroupByPreShuffleOperator
     }
   }
 
-  private def initializeUnionExprEvaluator(rowInspector: ObjectInspector): ExprNodeEvaluator = {
+  private def initializeUnionExprEvaluator(
+      rowInspector: ObjectInspector): ExprNodeEvaluator[_ <: ExprNodeDesc] = {
     val sfs = rowInspector.asInstanceOf[StructObjectInspector].getAllStructFieldRefs
-    var unionExprEval: ExprNodeEvaluator = null
+    var unionExprEval: ExprNodeEvaluator[_ <: ExprNodeDesc] = null
     if (sfs.size > 0) {
       val keyField = sfs.get(0)
       if (keyField.getFieldName.toUpperCase.equals(Utilities.ReduceField.KEY.name)) {

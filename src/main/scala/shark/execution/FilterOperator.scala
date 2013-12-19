@@ -22,13 +22,13 @@ import scala.reflect.BeanProperty
 
 import org.apache.hadoop.hive.ql.exec.{ExprNodeEvaluator, ExprNodeEvaluatorFactory}
 import org.apache.hadoop.hive.ql.metadata.HiveException
-import org.apache.hadoop.hive.ql.plan.FilterDesc
+import org.apache.hadoop.hive.ql.plan.{ExprNodeDesc, FilterDesc}
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector
 
 
 class FilterOperator extends UnaryOperator[FilterDesc] {
 
-  @transient var conditionEvaluator: ExprNodeEvaluator = _
+  @transient var conditionEvaluator: ExprNodeEvaluator[_ <: ExprNodeDesc] = _
   @transient var conditionInspector: PrimitiveObjectInspector = _
 
   @BeanProperty var conf: FilterDesc = _

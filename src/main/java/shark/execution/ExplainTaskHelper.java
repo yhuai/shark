@@ -22,13 +22,9 @@ import java.io.PrintStream;
 import java.io.Serializable;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.TreeMap;
 
-import org.apache.hadoop.hive.ql.exec.ExplainTask.MethodComparator;
 import org.apache.hadoop.hive.ql.plan.Explain;
 
 /**
@@ -89,7 +85,19 @@ public class ExplainTaskHelper {
     
     outputWork(work, out, extended, indent);
   }
-    
+
+  /**
+   * MethodComparator.
+   * It is copied from org.apache.hadoop.hive.ql.exec.ExplainTask.MethodComparator,
+   * which was not a static class in ExplainTask after HIVE-4812.
+   *
+   */
+  public static class MethodComparator implements Comparator<Method> {
+      public int compare(Method m1, Method m2) {
+          return m1.getName().compareTo(m2.getName());
+      }
+  }
+
   public static void outputWork(Serializable work, PrintStream out, boolean extended,
         int indent) throws Exception {
     // Check if work has an explain annotation

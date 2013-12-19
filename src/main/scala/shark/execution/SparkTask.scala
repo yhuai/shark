@@ -114,25 +114,19 @@ class SparkTask extends HiveTask[SparkWork] with Serializable with LogHelper {
     // topToTable maps Hive's TableScanOperator to the Table object.
     val topToTable: JHashMap[HiveTableScanOperator, Table] = work.pctx.getTopToTable()
 
-    val emptyPartnArray = new Array[Partition](0)
     // Add table metadata to TableScanOperators
     topOps.foreach { op =>
       op.table = topToTable.get(op.hiveOp)
       op.tableDesc = Utilities.getTableDesc(op.table)
       PlanUtils.configureInputJobPropertiesForStorageHandler(op.tableDesc)
       if (op.table.isPartitioned) {
-        val ppl = PartitionPruner.prune(
-          op.table,
-          work.pctx.getOpToPartPruner().get(op.hiveOp),
-          work.pctx.getConf(), "",
-          work.pctx.getPrunedPartitions())
-        op.parts = ppl.getConfirmedPartns.toArray(emptyPartnArray) ++
-          ppl.getUnknownPartns.toArray(emptyPartnArray)
-        val allParts = op.parts ++ ppl.getDeniedPartns.toArray
+        val ppl = PartitionPruner.prune(op.hiveOp, work.pctx, "")
+        op.parts = ppl.getPartitions.toArray(new Array[Partition](0))
+        val allParts = op.parts
         if (allParts.size == 0) {
           op.firstConfPartDesc = new PartitionDesc(op.tableDesc, null)
         } else {
-          op.firstConfPartDesc = Utilities.getPartitionDesc(allParts(0).asInstanceOf[Partition])
+          op.firstConfPartDesc = Utilities.getPartitionDesc(allParts(0))
         }
       }
     }
@@ -141,8 +135,6 @@ class SparkTask extends HiveTask[SparkWork] with Serializable with LogHelper {
   override def getType = StageType.MAPRED
 
   override def getName = "MAPRED-SPARK"
-
-  override def localizeMRTmpFilesImpl(ctx: Context) = Unit
 
 }
 

@@ -23,7 +23,7 @@ import scala.collection.JavaConversions._
 import scala.reflect.BeanProperty
 
 import org.apache.hadoop.hive.ql.exec.{ExprNodeEvaluator, JoinUtil => HiveJoinUtil}
-import org.apache.hadoop.hive.ql.plan.MapJoinDesc
+import org.apache.hadoop.hive.ql.plan.{ExprNodeDesc, MapJoinDesc}
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory
@@ -46,19 +46,17 @@ class MapJoinOperator extends CommonJoinOperator[MapJoinDesc] {
 
   @BeanProperty var posBigTable: Int = _
   @BeanProperty var bigTableAlias: Int = _
-  @BeanProperty var bigTableAliasByte: java.lang.Byte = _
 
-  @transient var joinKeys: JHashMap[java.lang.Byte, JList[ExprNodeEvaluator]] = _
-  @transient var joinKeysObjectInspectors: JHashMap[java.lang.Byte, JList[ObjectInspector]] = _
+  @transient var joinKeys: Array[JList[ExprNodeEvaluator[_ <: ExprNodeDesc]]] = _
+  @transient var joinKeysObjectInspectors: Array[JList[ObjectInspector]] = _
 
   @transient val metadataKeyTag = -1
-  @transient var joinValues: JHashMap[java.lang.Byte, JList[ExprNodeEvaluator]] = _
+  @transient var joinValues: Array[JList[ExprNodeEvaluator[_ <: ExprNodeDesc]]] = _
 
   override def initializeOnMaster() {
     super.initializeOnMaster()
     posBigTable = conf.getPosBigTable()
     bigTableAlias = order(posBigTable).toInt
-    bigTableAliasByte = bigTableAlias.toByte
 
     // Also call initialize on slave since we want the joinKeys and joinVals to
     // be initialized so we can use them in combineMultipleRdds(). This also puts
@@ -69,14 +67,15 @@ class MapJoinOperator extends CommonJoinOperator[MapJoinDesc] {
   override def initializeOnSlave() {
     super.initializeOnSlave()
 
-    joinKeys = new JHashMap[java.lang.Byte, JList[ExprNodeEvaluator]]
+    tagLen = conf.getTagLength()
+    joinKeys = new Array[JList[ExprNodeEvaluator[_ <: ExprNodeDesc]]](tagLen)
     HiveJoinUtil.populateJoinKeyValue(
       joinKeys, conf.getKeys(), order, CommonJoinOperator.NOTSKIPBIGTABLE)
 
     // A bit confusing but getObjectInspectorsFromEvaluators also initializes
     // the evaluators.
     joinKeysObjectInspectors = HiveJoinUtil.getObjectInspectorsFromEvaluators(
-      joinKeys, objectInspectors.toArray, CommonJoinOperator.NOTSKIPBIGTABLE)
+      joinKeys, objectInspectors.toArray, CommonJoinOperator.NOTSKIPBIGTABLE, tagLen)
 
   }
   
@@ -185,14 +184,14 @@ class MapJoinOperator extends CommonJoinOperator[MapJoinDesc] {
     iter.foreach { row =>
       val key = JoinUtil.computeJoinKey(
         row,
-        joinKeys.get(posByte),
-        joinKeysObjectInspectors.get(posByte))
+        joinKeys(posByte),
+        joinKeysObjectInspectors(posByte))
       val value: Array[AnyRef] = JoinUtil.computeJoinValues(
         row,
-        joinVals.get(posByte),
-        joinValuesObjectInspectors.get(posByte),
-        joinFilters.get(posByte),
-        joinFilterObjectInspectors.get(posByte),
+        joinVals(posByte),
+        joinValuesObjectInspectors(posByte),
+        joinFilters(posByte),
+        joinFilterObjectInspectors(posByte),
         noOuterJoin)
       // If we've seen the key before, just add it to the row container wrapped by
       // corresponding MapJoinObjectValue.
@@ -214,8 +213,8 @@ class MapJoinOperator extends CommonJoinOperator[MapJoinDesc] {
   def joinOnPartition[T](iter: Iterator[T],
       hashtables: Map[Int, JHashMap[Seq[AnyRef], Array[Array[AnyRef]]]]): Iterator[_] = {
 
-    val joinKeyEval = joinKeys.get(bigTableAlias.toByte)
-    val joinValueEval = joinVals.get(bigTableAlias.toByte)
+    val joinKeyEval = joinKeys(bigTableAlias)
+    val joinValueEval = joinVals(bigTableAlias)
     val bufs = new Array[Seq[Array[Object]]](numTables)
     val nullSafes = conf.getNullSafes()
 
@@ -226,13 +225,13 @@ class MapJoinOperator extends CommonJoinOperator[MapJoinDesc] {
       val key = JoinUtil.computeJoinKey(
         row,
         joinKeyEval,
-        joinKeysObjectInspectors.get(bigTableAliasByte))
+        joinKeysObjectInspectors(bigTableAlias))
       val v: Array[AnyRef] = JoinUtil.computeJoinValues(
         row,
         joinValueEval,
-        joinValuesObjectInspectors.get(bigTableAliasByte),
-        joinFilters.get(bigTableAliasByte),
-        joinFilterObjectInspectors.get(bigTableAliasByte),
+        joinValuesObjectInspectors(bigTableAlias),
+        joinFilters(bigTableAlias),
+        joinFilterObjectInspectors(bigTableAlias),
         noOuterJoin)
       val value = new Array[AnyRef](v.size)
       Range(0,v.size).foreach(i => value(i) = v(i).asInstanceOf[SerializableWritable[_]].value)
@@ -263,7 +262,7 @@ class MapJoinOperator extends CommonJoinOperator[MapJoinDesc] {
         cp.product(bufs, joinConditions)
       }
     }
-    val rowSize = joinVals.values.map(_.size).sum
+    val rowSize = joinVals.map(_.size).sum
     val rowToReturn = new Array[Object](rowSize)
     // For each row, combine the tuples from multiple tables into a single tuple.
     jointRows.map { row: Array[Array[Object]] =>

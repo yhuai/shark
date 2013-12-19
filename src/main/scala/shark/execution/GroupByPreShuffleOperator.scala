@@ -52,11 +52,11 @@ class GroupByPreShuffleOperator extends UnaryOperator[GroupByDesc] {
   @transient var aggregationObjectInspectors: Array[ObjectInspector] = _
 
   // Key fields to be grouped.
-  @transient var keyFields: Array[ExprNodeEvaluator] = _
+  @transient var keyFields: Array[ExprNodeEvaluator[_ <: ExprNodeDesc]] = _
   // A struct object inspector composing of all the fields.
   @transient var keyObjectInspector: StructObjectInspector = _
 
-  @transient var aggregationParameterFields: Array[Array[ExprNodeEvaluator]] = _
+  @transient var aggregationParameterFields: Array[Array[ExprNodeEvaluator[_ <: ExprNodeDesc]]] = _
   @transient var aggregationParameterObjectInspectors: Array[Array[ObjectInspector]] = _
   @transient var aggregationParameterStandardObjectInspectors: Array[Array[ObjectInspector]] = _
 

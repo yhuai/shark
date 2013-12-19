@@ -33,6 +33,7 @@ import shark.{LogHelper, SharkEnv}
 import shark.memstore2.{CacheType, MemoryMetadataManager, PartitionedMemoryTable}
 import shark.memstore2.{SharkTblProperties, TablePartitionStats}
 import shark.util.HiveUtils
+import org.apache.hadoop.hive.ql.session.SessionState
 
 
 private[shark] class SharkDDLWork(val ddlDesc: DDLDesc) extends java.io.Serializable {
@@ -88,7 +89,7 @@ private[shark] class SharkDDLTask extends HiveTask[SharkDDLWork]
       hiveMetadataDb: Hive,
       createTblDesc: CreateTableDesc,
       cacheMode: CacheType.CacheType) {
-    val dbName = hiveMetadataDb.getCurrentDatabase
+    val dbName = SessionState.get().getCurrentDatabase()
     val tableName = createTblDesc.getTableName
     val tblProps = createTblDesc.getTblProps
 
@@ -117,7 +118,7 @@ private[shark] class SharkDDLTask extends HiveTask[SharkDDLWork]
   def addPartition(
       hiveMetadataDb: Hive,
       addPartitionDesc: AddPartitionDesc) {
-    val dbName = hiveMetadataDb.getCurrentDatabase()
+    val dbName = SessionState.get().getCurrentDatabase()
     val tableName = addPartitionDesc.getTableName
     val partitionedTable = getPartitionedTableWithAssertions(dbName, tableName)
 
@@ -141,7 +142,7 @@ private[shark] class SharkDDLTask extends HiveTask[SharkDDLWork]
   def dropTableOrPartition(
       hiveMetadataDb: Hive,
       dropTableDesc: DropTableDesc) {
-    val dbName = hiveMetadataDb.getCurrentDatabase()
+    val dbName = SessionState.get().getCurrentDatabase()
     val tableName = dropTableDesc.getTableName
     val hiveTable = db.getTable(tableName, false /* throwException */);
     val partSpecs: JavaList[PartitionSpec] = dropTableDesc.getPartSpecs
@@ -174,7 +175,7 @@ private[shark] class SharkDDLTask extends HiveTask[SharkDDLWork]
   def alterTable(
       hiveMetadataDb: Hive,
       alterTableDesc: AlterTableDesc) {
-    val dbName = hiveMetadataDb.getCurrentDatabase()
+    val dbName = SessionState.get().getCurrentDatabase()
     alterTableDesc.getOp() match {
       case AlterTableDesc.AlterTableTypes.RENAME => {
         val oldName = alterTableDesc.getOldName
@@ -204,7 +205,5 @@ private[shark] class SharkDDLTask extends HiveTask[SharkDDLWork]
   override def getType = StageType.DDL
 
   override def getName = "DDL-SPARK"
-
-  override def localizeMRTmpFilesImpl(ctx: Context) = Unit
 
 }

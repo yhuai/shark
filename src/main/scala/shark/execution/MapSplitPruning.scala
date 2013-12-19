@@ -30,6 +30,7 @@ import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPOr
 
 import shark.memstore2.ColumnarStructObjectInspector.IDStructField
 import shark.memstore2.TablePartitionStats
+import org.apache.hadoop.hive.ql.plan.ExprNodeDesc
 
 
 object MapSplitPruning {
@@ -42,7 +43,7 @@ object MapSplitPruning {
    *
    * s and s.stats must not be null here.
    */
-  def test(s: TablePartitionStats, e: ExprNodeEvaluator): Boolean = {
+  def test(s: TablePartitionStats, e: ExprNodeEvaluator[_ <: ExprNodeDesc]): Boolean = {
     if (s.numRows == 0) {
       // If the partition is empty, it can be pruned.
       false
@@ -83,7 +84,7 @@ object MapSplitPruning {
   def testInPredicate(
     s: TablePartitionStats,
     columnEval: ExprNodeColumnEvaluator,
-    expEvals: Array[ExprNodeEvaluator]): Boolean = {
+    expEvals: Array[ExprNodeEvaluator[_ <: ExprNodeDesc]]): Boolean = {
 
     val field = columnEval.field.asInstanceOf[IDStructField]
     val columnStats = s.stats(field.fieldID)
@@ -130,8 +131,8 @@ object MapSplitPruning {
   def testComparisonPredicate(
     s: TablePartitionStats,
     udf: GenericUDFBaseCompare,
-    left: ExprNodeEvaluator,
-    right: ExprNodeEvaluator): Boolean = {
+    left: ExprNodeEvaluator[_ <: ExprNodeDesc],
+    right: ExprNodeEvaluator[_ <: ExprNodeDesc]): Boolean = {
 
     // Try to get the column evaluator.
     val columnEval: ExprNodeColumnEvaluator =

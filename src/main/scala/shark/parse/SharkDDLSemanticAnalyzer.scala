@@ -29,6 +29,7 @@ import org.apache.hadoop.hive.ql.parse.DDLSemanticAnalyzer
 import org.apache.hadoop.hive.ql.parse.HiveParser
 import org.apache.hadoop.hive.ql.parse.SemanticException
 import org.apache.hadoop.hive.ql.plan.{AlterTableDesc, DDLWork}
+import org.apache.hadoop.hive.ql.session.SessionState;
 
 import org.apache.spark.rdd.{UnionRDD, RDD}
 
@@ -75,7 +76,7 @@ class SharkDDLSemanticAnalyzer(conf: HiveConf) extends DDLSemanticAnalyzer(conf)
    *   metastore.
    */
   def analyzeAlterTableProperties(ast: ASTNode) {
-    val databaseName = db.getCurrentDatabase()
+    val databaseName = SessionState.get().getCurrentDatabase()
     val tableName = getTableName(ast)
     val hiveTable = db.getTable(databaseName, tableName)
     val newTblProps = getAlterTblDesc().getProps
@@ -120,7 +121,7 @@ class SharkDDLSemanticAnalyzer(conf: HiveConf) extends DDLSemanticAnalyzer(conf)
   }
 
   def analyzeDropTableOrDropParts(ast: ASTNode) {
-    val databaseName = db.getCurrentDatabase()
+    val databaseName = SessionState.get().getCurrentDatabase()
     val tableName = getTableName(ast)
     // Create a SharkDDLTask only if the table is cached.
     if (SharkEnv.memoryMetadataManager.containsTable(databaseName, tableName)) {
@@ -135,7 +136,7 @@ class SharkDDLSemanticAnalyzer(conf: HiveConf) extends DDLSemanticAnalyzer(conf)
   }
 
   def analyzeAlterTableAddParts(ast: ASTNode) {
-    val databaseName = db.getCurrentDatabase()
+    val databaseName = SessionState.get().getCurrentDatabase()
     val tableName = getTableName(ast)
     // Create a SharkDDLTask only if the table is cached.
     if (SharkEnv.memoryMetadataManager.containsTable(databaseName, tableName)) {
@@ -150,7 +151,7 @@ class SharkDDLSemanticAnalyzer(conf: HiveConf) extends DDLSemanticAnalyzer(conf)
   }
 
   private def analyzeAlterTableRename(astNode: ASTNode) {
-    val databaseName = db.getCurrentDatabase()
+    val databaseName = SessionState.get().getCurrentDatabase()
     val oldTableName = getTableName(astNode)
     if (SharkEnv.memoryMetadataManager.containsTable(databaseName, oldTableName)) {
       val newTableName = BaseSemanticAnalyzer.getUnescapedName(

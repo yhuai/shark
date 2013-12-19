@@ -27,6 +27,7 @@ import org.apache.spark.rdd.RDD
 import shark.{SharkContext, SharkEnv}
 import shark.memstore2.{CacheType, TablePartitionStats, TablePartition, TablePartitionBuilder}
 import shark.util.HiveUtils
+import org.apache.hadoop.hive.ql.session.SessionState
 
 
 class RDDTableFunctions(self: RDD[Seq[_]], classTags: Seq[ClassTag[_]]) {
@@ -60,7 +61,7 @@ class RDDTableFunctions(self: RDD[Seq[_]], classTags: Seq[ClassTag[_]]) {
     var isSucessfulCreateTable = HiveUtils.createTableInHive(tableName, fields, classTags)
 
     // Put the table in the metastore. Only proceed if the DDL statement is executed successfully.
-    val databaseName = Hive.get(SharkContext.hiveconf).getCurrentDatabase()
+    val databaseName = SessionState.get().getCurrentDatabase()
     if (isSucessfulCreateTable) {
       // Create an entry in the MemoryMetadataManager.
       val newTable = SharkEnv.memoryMetadataManager.createMemoryTable(

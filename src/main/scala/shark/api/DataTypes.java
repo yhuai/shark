@@ -25,7 +25,7 @@ import java.sql.Timestamp;
 import scala.reflect.ClassTag;
 import scala.reflect.ClassTag$;
 
-import org.apache.hadoop.hive.serde.Constants;
+import org.apache.hadoop.hive.serde.serdeConstants;
 
 /**
  * List of data types defined in Shark APIs.
@@ -36,44 +36,44 @@ public class DataTypes {
   // Java APIs.
   // Primitive types:
   public static final DataType BOOLEAN = new DataType(
-      "boolean", Constants.BOOLEAN_TYPE_NAME, true);
+      "boolean", serdeConstants.BOOLEAN_TYPE_NAME, true);
 
   public static final DataType TINYINT = new DataType(
-      "tinyint", Constants.TINYINT_TYPE_NAME, true);
+      "tinyint", serdeConstants.TINYINT_TYPE_NAME, true);
 
   public static final DataType SMALLINT = new DataType(
-      "smallint", Constants.SMALLINT_TYPE_NAME, true);
+      "smallint", serdeConstants.SMALLINT_TYPE_NAME, true);
 
   public static final DataType INT = new DataType(
-      "int", Constants.INT_TYPE_NAME, true);
+      "int", serdeConstants.INT_TYPE_NAME, true);
 
   public static final DataType BIGINT = new DataType(
-      "bigint", Constants.BIGINT_TYPE_NAME, true);
+      "bigint", serdeConstants.BIGINT_TYPE_NAME, true);
 
   public static final DataType FLOAT = new DataType(
-      "float", Constants.FLOAT_TYPE_NAME, true);
+      "float", serdeConstants.FLOAT_TYPE_NAME, true);
 
   public static final DataType DOUBLE = new DataType(
-      "double", Constants.DOUBLE_TYPE_NAME, true);
+      "double", serdeConstants.DOUBLE_TYPE_NAME, true);
 
   public static final DataType STRING = new DataType(
-      "string", Constants.STRING_TYPE_NAME, true);
+      "string", serdeConstants.STRING_TYPE_NAME, true);
 
   public static final DataType TIMESTAMP = new DataType(
-      "timestamp", Constants.TIMESTAMP_TYPE_NAME, true);
+      "timestamp", serdeConstants.TIMESTAMP_TYPE_NAME, true);
 
   public static final DataType DATE = new DataType(
-      "date", Constants.DATE_TYPE_NAME, true);
+      "date", serdeConstants.DATE_TYPE_NAME, true);
 
   public static final DataType BINARY = new DataType(
-      "binary", Constants.BINARY_TYPE_NAME, true);
+      "binary", serdeConstants.BINARY_TYPE_NAME, true);
 
   // Complex types:
   // TODO: handle complex types.
-//  public static final DataType ARRAY = new DataType("array", Constants.LIST_TYPE_NAME, false);
-//  public static final DataType MAP = new DataType("map", Constants.MAP_TYPE_NAME, false);
-//  public static final DataType STRUCT = new DataType("struct", Constants.STRUCT_TYPE_NAME, false);
-//  public static final DataType UNION = new DataType("union", Constants.UNION_TYPE_NAME, false);
+//  public static final DataType ARRAY = new DataType("array", serdeConstants.LIST_TYPE_NAME, false);
+//  public static final DataType MAP = new DataType("map", serdeConstants.MAP_TYPE_NAME, false);
+//  public static final DataType STRUCT = new DataType("struct", serdeConstants.STRUCT_TYPE_NAME, false);
+//  public static final DataType UNION = new DataType("union", serdeConstants.UNION_TYPE_NAME, false);
 
   private static DataType[] types = {
       BOOLEAN, TINYINT, SMALLINT, INT, BIGINT, FLOAT, DOUBLE, STRING, TIMESTAMP, DATE, BINARY,

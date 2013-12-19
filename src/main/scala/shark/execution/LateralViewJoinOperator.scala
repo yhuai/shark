@@ -25,7 +25,7 @@ import scala.reflect.BeanProperty
 
 import org.apache.commons.codec.binary.Base64
 import org.apache.hadoop.hive.ql.exec.{ExprNodeEvaluator, ExprNodeEvaluatorFactory}
-import org.apache.hadoop.hive.ql.plan.{LateralViewJoinDesc, SelectDesc}
+import org.apache.hadoop.hive.ql.plan.{ExprNodeDesc, LateralViewJoinDesc, SelectDesc}
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory
 import org.apache.hadoop.hive.serde2.objectinspector.{ObjectInspector, StructObjectInspector}
 
@@ -47,7 +47,7 @@ class LateralViewJoinOperator extends NaryOperator[LateralViewJoinDesc] {
   @BeanProperty var udtfOp: UDTFOperator = _
   @BeanProperty var udtfOIString: String = _
 
-  @transient var eval: Array[ExprNodeEvaluator] = _
+  @transient var eval: Array[ExprNodeEvaluator[_ <: ExprNodeDesc]] = _
   @transient var fieldOis: StructObjectInspector = _
 
   override def initializeOnMaster() {

@@ -24,6 +24,7 @@ import scala.collection.JavaConversions._
 import scala.collection.concurrent
 
 import org.apache.hadoop.hive.ql.metadata.Hive
+import org.apache.hadoop.hive.ql.session.SessionState;
 
 import org.apache.spark.rdd.{RDD, UnionRDD}
 
@@ -183,7 +184,7 @@ class MemoryMetadataManager {
       databaseName: String,
       tableName: String) {
     getTable(databaseName, tableName).foreach { sharkTable =>
-      db.setCurrentDatabase(databaseName)
+      SessionState.get().setCurrentDatabase(databaseName)
       val hiveTable = db.getTable(databaseName, tableName)
       // Refresh the Hive `db`.
       db.alterTable(tableName, hiveTable)

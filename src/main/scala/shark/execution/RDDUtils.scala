@@ -128,7 +128,7 @@ object RDDUtils {
     // Guava only takes Java iterators. Convert the iterator into Java iterator and then
     // convert it back to Scala.
     JavaConversions.asScalaIterator(
-      ordering.leastOf(JavaConversions.asJavaIterator(it), k).iterator)
+      ordering.leastOf(JavaConversions.asJavaIterable(it.toIterable), k).iterator)
   }
 
 }

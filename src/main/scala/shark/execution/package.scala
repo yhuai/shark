@@ -24,7 +24,7 @@ import shark.execution.serialization.OperatorSerializationWrapper
 
 package object execution {
 
-  type HiveDesc = java.io.Serializable  // XXXDesc in Hive is the subclass of Serializable
+  type HiveDesc = org.apache.hadoop.hive.ql.plan.OperatorDesc  // XXXDesc in Hive is the subclass of Serializable
 
   implicit def opSerWrapper2op[T <: Operator[_ <: HiveDesc]](
       wrapper: OperatorSerializationWrapper[T]): T = wrapper.value

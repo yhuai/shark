@@ -59,9 +59,14 @@ class SharkExplainSemanticAnalyzer(conf: HiveConf) extends ExplainSemanticAnalyz
       tasks.add(fetchTask)
     }
 
+    var pCtx: ParseContext = null
+    if (sem.isInstanceOf[SemanticAnalyzer]) {
+      pCtx = (sem.asInstanceOf[SemanticAnalyzer]).getParseContext
+    }
+
     val task = TaskFactory.get(
-      new SharkExplainWork(ctx.getResFile().toString(), tasks, childNode.toStringTree(), extended),
-      conf)
+      new SharkExplainWork(ctx.getResFile().toString(), pCtx, tasks, childNode.toStringTree(),
+        sem.getInputs, extended), conf)
 
     rootTasks.add(task)
   }

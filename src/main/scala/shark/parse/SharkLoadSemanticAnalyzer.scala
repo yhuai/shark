@@ -28,6 +28,7 @@ import org.apache.hadoop.hive.ql.plan._
 import shark.{LogHelper, SharkEnv}
 import shark.execution.SparkLoadWork
 import shark.memstore2.CacheType
+import org.apache.hadoop.hive.ql.session.SessionState
 
 class SharkLoadSemanticAnalyzer(conf: HiveConf) extends LoadSemanticAnalyzer(conf) {
   
@@ -41,7 +42,7 @@ class SharkLoadSemanticAnalyzer(conf: HiveConf) extends LoadSemanticAnalyzer(con
     // 3. (optional) node representing the LOCAL modifier.
     val tableASTNode = ast.getChild(1).asInstanceOf[ASTNode]
     val tableName = getTableName(tableASTNode)
-    val databaseName = db.getCurrentDatabase()
+    val databaseName = SessionState.get().getCurrentDatabase()
 
     val tableOpt = SharkEnv.memoryMetadataManager.getTable(databaseName, tableName)
     if (tableOpt.exists(table => table.cacheMode == CacheType.MEMORY)) {

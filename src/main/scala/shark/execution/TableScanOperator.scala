@@ -23,12 +23,12 @@ import scala.collection.JavaConversions._
 import scala.reflect.BeanProperty
 
 import org.apache.hadoop.hive.conf.HiveConf
-import org.apache.hadoop.hive.metastore.api.Constants.META_TABLE_PARTITION_COLUMNS
+import org.apache.hadoop.hive.metastore.api.hive_metastoreConstants.META_TABLE_PARTITION_COLUMNS
 import org.apache.hadoop.hive.ql.exec.{TableScanOperator => HiveTableScanOperator}
 import org.apache.hadoop.hive.ql.exec.{MapSplitPruning, Utilities}
 import org.apache.hadoop.hive.ql.metadata.{Partition, Table}
 import org.apache.hadoop.hive.ql.plan.{PartitionDesc, TableDesc, TableScanDesc}
-import org.apache.hadoop.hive.serde.Constants
+import org.apache.hadoop.hive.serde.serdeConstants
 import org.apache.hadoop.hive.serde2.objectinspector.{ObjectInspector, ObjectInspectorFactory,
   StructObjectInspector}
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory
@@ -248,7 +248,7 @@ object TableScanOperator extends LogHelper {
         columnNames.append(columnInfo.getInternalName())
       }
       val columnNamesString = columnNames.toString()
-      hiveConf.set(Constants.LIST_COLUMNS, columnNamesString)
+      hiveConf.set(serdeConstants.LIST_COLUMNS, columnNamesString)
 
       // Add column types to the HiveConf.
       val columnTypes = new StringBuilder
@@ -259,7 +259,7 @@ object TableScanOperator extends LogHelper {
         columnTypes.append(columnInfo.getType().getTypeName())
       }
       val columnTypesString = columnTypes.toString()
-      hiveConf.set(Constants.LIST_COLUMN_TYPES, columnTypesString)
+      hiveConf.set(serdeConstants.LIST_COLUMN_TYPES, columnTypesString)
     }
 
     // Push down predicate filters.

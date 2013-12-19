@@ -21,7 +21,7 @@ import scala.collection.JavaConversions._
 import scala.reflect.BeanProperty
 
 import org.apache.hadoop.hive.ql.exec.{ExprNodeEvaluator, ExprNodeEvaluatorFactory}
-import org.apache.hadoop.hive.ql.plan.SelectDesc
+import org.apache.hadoop.hive.ql.plan.{ExprNodeDesc, SelectDesc}
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector
 
 
@@ -33,7 +33,7 @@ class SelectOperator extends UnaryOperator[SelectDesc] {
 
   @BeanProperty var conf: SelectDesc = _
 
-  @transient var evals: Array[ExprNodeEvaluator] = _
+  @transient var evals: Array[ExprNodeEvaluator[_ <: ExprNodeDesc]] = _
 
   override def initializeOnMaster() {
     super.initializeOnMaster()

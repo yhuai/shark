@@ -27,11 +27,7 @@ import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hive.conf.HiveConf
 import org.apache.hadoop.hive.metastore.Warehouse
 import org.apache.hadoop.hive.metastore.api.{FieldSchema, MetaException}
-import org.apache.hadoop.hive.ql.exec.{DDLTask, FetchTask}
-import org.apache.hadoop.hive.ql.exec.{FileSinkOperator => HiveFileSinkOperator}
-import org.apache.hadoop.hive.ql.exec.MoveTask
-import org.apache.hadoop.hive.ql.exec.{Operator => HiveOperator}
-import org.apache.hadoop.hive.ql.exec.TaskFactory
+import org.apache.hadoop.hive.ql.exec.{FileSinkOperator => HiveFileSinkOperator, Operator => HiveOperator, _}
 import org.apache.hadoop.hive.ql.metadata.HiveException
 import org.apache.hadoop.hive.ql.optimizer.Optimizer
 import org.apache.hadoop.hive.ql.parse._
@@ -43,6 +39,7 @@ import shark.execution.{HiveDesc, Operator, OperatorFactory, RDDUtils, ReduceSin
 import shark.execution.{SharkDDLWork, SparkLoadWork, SparkWork, TerminalOperator}
 import shark.memstore2.{CacheType, ColumnarSerDe, MemoryMetadataManager}
 import shark.memstore2.{MemoryTable, PartitionedMemoryTable, SharkTblProperties, TableRecovery}
+import scala.Some
 
 
 /**
@@ -79,13 +76,14 @@ class SharkSemanticAnalyzer(conf: HiveConf) extends SemanticAnalyzer(conf) with 
    * for CTAS, and creates UnionRDDs for INSERT INTO commands.
    */
   override def analyzeInternal(ast: ASTNode): Unit = {
-    reset()
-
     val qb = new QueryBlock(null, null, false)
-    val pctx = getParseContext()
-    pctx.setQB(qb)
-    pctx.setParseTree(ast)
-    init(pctx)
+    // Set qb to the newly created query block.
+    setQB(qb)
+
+    val astField = classOf[SemanticAnalyzer].getDeclaredField("ast")
+    astField.setAccessible(true)
+    var astInSemanticAnalyzer = astField.get(this).asInstanceOf[ASTNode]
+    astInSemanticAnalyzer = ast;
     // The ASTNode that will be analyzed by SemanticAnalzyer#doPhase1().
     var child: ASTNode = ast
 
@@ -95,7 +93,9 @@ class SharkSemanticAnalyzer(conf: HiveConf) extends SemanticAnalyzer(conf) with 
     var shouldReset = false
 
     val astTokenType = ast.getToken().getType()
-    if (astTokenType == HiveParser.TOK_CREATEVIEW || astTokenType == HiveParser.TOK_ANALYZE) {
+    if (astTokenType == HiveParser.TOK_CREATEVIEW ||
+      astTokenType == HiveParser.TOK_ALTERVIEW_AS ||
+      astTokenType == HiveParser.TOK_ANALYZE) {
       // Delegate create view and analyze to Hive.
       super.analyzeInternal(ast)
       return
@@ -149,16 +149,23 @@ class SharkSemanticAnalyzer(conf: HiveConf) extends SemanticAnalyzer(conf) with 
 
     // Use reflection to invoke convertRowSchemaToViewSchema.
     _resSchema = SharkSemanticAnalyzer.convertRowSchemaToViewSchemaMethod.invoke(
-      this, pctx.getOpParseCtx.get(hiveSinkOp).getRowResolver()
-      ).asInstanceOf[JavaList[FieldSchema]]
+      this, getRowResolver(hiveSinkOp)).asInstanceOf[JavaList[FieldSchema]]
+
+    var pCtx: ParseContext = getParseContext
+    pCtx.setParseTree(child);
+    // Generate table access stats if required
+    if (HiveConf.getBoolVar(this.conf, HiveConf.ConfVars.HIVE_STATS_COLLECT_TABLEKEYS) == true) {
+      // val tableAccessAnalyzer: TableAccessAnalyzer = new TableAccessAnalyzer(pCtx)
+      // setTableAccessInfo(tableAccessAnalyzer.analyzeTableAccess)
+      throw new SemanticException("Shark does not support collecting table access keys information." +
+        "Please set " + HiveConf.ConfVars.HIVE_STATS_COLLECT_TABLEKEYS + " to false.")
+    }
 
     // Run Hive optimization.
-    var pCtx: ParseContext = getParseContext
     val optm = new Optimizer()
     optm.setPctx(pCtx)
     optm.initialize(conf)
     pCtx = optm.optimize()
-    init(pCtx)
 
     // Replace Hive physical plan with Shark plan. This needs to happen after
     // Hive optimization.
@@ -189,7 +196,7 @@ class SharkSemanticAnalyzer(conf: HiveConf) extends SemanticAnalyzer(conf) with 
                 // INSERT INTO or OVERWRITE update on a cached table.
                 qb.targetTableDesc = tableDesc
                 // If useUnionRDD is true, the sink op is for INSERT INTO.
-                val useUnionRDD = qbParseInfo.isInsertIntoTable(cachedTableName)
+                val useUnionRDD = qbParseInfo.isInsertIntoTable(databaseName, cachedTableName)
                 val isPartitioned = SharkEnv.memoryMetadataManager.isHivePartitioned(
                   databaseName, cachedTableName)
                 var hivePartitionKey = if (isPartitioned) {
@@ -248,7 +255,7 @@ class SharkSemanticAnalyzer(conf: HiveConf) extends SemanticAnalyzer(conf) with 
                 qb.cacheMode,
                 false  /* useUnionRDD */)
             }
-          } else if (pctx.getContext().asInstanceOf[QueryContext].useTableRddSink && !qb.isCTAS) {
+          } else if (pCtx.getContext().asInstanceOf[QueryContext].useTableRddSink && !qb.isCTAS) {
             OperatorFactory.createSharkRddOutputPlan(hiveSinkOps.head)
           } else {
             OperatorFactory.createSharkFileOutputPlan(hiveSinkOps.head)
@@ -265,7 +272,7 @@ class SharkSemanticAnalyzer(conf: HiveConf) extends SemanticAnalyzer(conf) with 
     }
 
     SharkSemanticAnalyzer.breakHivePlanByStages(terminalOpSeq)
-    genMapRedTasks(qb, pctx, terminalOpSeq)
+    genMapRedTasks(qb, pCtx, terminalOpSeq)
 
     logDebug("Completed plan generation")
   }
@@ -387,7 +394,7 @@ class SharkSemanticAnalyzer(conf: HiveConf) extends SemanticAnalyzer(conf) with 
             conf,
             hiveTable,
             partSpecOpt,
-            isOverwrite = !qb.getParseInfo.isInsertIntoTable(cachedTableName))
+            isOverwrite = !qb.getParseInfo.isInsertIntoTable(databaseName, cachedTableName))
         }
         // Add a SparkLoadTask as a dependent of all MoveTasks, so that when executed, the table's
         // (or table partition's) data directory will already contain updates that should be

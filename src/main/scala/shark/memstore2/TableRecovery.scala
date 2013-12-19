@@ -23,6 +23,7 @@ import org.apache.hadoop.hive.ql.metadata.Hive
 
 import shark.LogHelper
 import shark.util.QueryRewriteUtils
+import org.apache.hadoop.hive.ql.session.SessionState
 
 /**
  * Singleton used to reload RDDs upon server restarts.
@@ -40,7 +41,7 @@ object TableRecovery extends LogHelper {
    */
   def reloadRdds(cmdRunner: String => Unit) {
     // Filter for tables that should be reloaded into the cache.
-    val currentDbName = db.getCurrentDatabase()
+    val currentDbName = SessionState.get().getCurrentDatabase()
     for (databaseName <- db.getAllDatabases(); tableName <- db.getAllTables(databaseName)) {
       val tblProps = db.getTable(databaseName, tableName).getParameters
       val cacheMode = CacheType.fromString(tblProps.get(SharkTblProperties.CACHE_FLAG.varname))
@@ -50,6 +51,6 @@ object TableRecovery extends LogHelper {
         cmdRunner(cmd)
       }
     }
-    db.setCurrentDatabase(currentDbName)
+    SessionState.get().setCurrentDatabase(currentDbName)
   }
 }

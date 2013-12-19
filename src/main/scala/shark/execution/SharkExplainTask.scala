@@ -18,7 +18,7 @@
 package shark.execution
 
 import java.io.PrintStream
-import java.util.{List => JavaList}
+import java.util.{HashSet, List => JavaList}
 
 import scala.collection.JavaConversions._
 
@@ -26,7 +26,9 @@ import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hive.conf.HiveConf
 import org.apache.hadoop.hive.ql.{Context, DriverContext, QueryPlan}
 import org.apache.hadoop.hive.ql.exec.{ExplainTask, Task}
-import org.apache.hadoop.hive.ql.plan.ExplainWork
+import org.apache.hadoop.hive.ql.hooks.ReadEntity;
+import org.apache.hadoop.hive.ql.plan.{ExplainWork}
+import org.apache.hadoop.hive.ql.parse.ParseContext
 import org.apache.hadoop.util.StringUtils
 
 import shark.LogHelper
@@ -34,10 +36,13 @@ import shark.LogHelper
 
 class SharkExplainWork(
   resFile: String,
+  pCtx: ParseContext,
   rootTasks: JavaList[Task[_ <: java.io.Serializable]],
   astStringTree: String,
+  inputs: HashSet[ReadEntity],
   extended: Boolean)
- extends ExplainWork(resFile, rootTasks, astStringTree, extended, false)
+ extends ExplainWork(resFile, pCtx, rootTasks, astStringTree, inputs,
+                      extended, false, false, false)
 
 
 /**
@@ -57,14 +62,14 @@ class SharkExplainTask extends Task[SharkExplainWork] with java.io.Serializable 
       val out = new PrintStream(outS)
 
       // Print out the parse AST
-      ExplainTask.outputAST(work.getAstStringTree, out, false, 0)
+      hiveExplainTask.outputAST(work.getAstStringTree, out, false, 0)
       out.println()
 
-      ExplainTask.outputDependencies(out, work.isFormatted(), work.getRootTasks, 0)
+      hiveExplainTask.outputDependencies(out, work.isFormatted(), work.getRootTasks, 0)
       out.println()
 
       // Go over all the tasks and dump out the plans
-      ExplainTask.outputStagePlans(out, work, work.getRootTasks, 0)
+      hiveExplainTask.outputStagePlans(out, work, work.getRootTasks, 0)
 
       // Print the Shark query plan if applicable.
       if (work != null && work.getRootTasks != null && work.getRootTasks.size > 0) {
@@ -101,12 +106,6 @@ class SharkExplainTask extends Task[SharkExplainWork] with java.io.Serializable 
   override def getType = hiveExplainTask.getType
 
   override def getName = hiveExplainTask.getName
-
-  override def localizeMRTmpFilesImpl(ctx: Context) {
-    // explain task has nothing to localize
-    // we don't expect to enter this code path at all
-    throw new RuntimeException ("Unexpected call")
-  }
 
 }
 
