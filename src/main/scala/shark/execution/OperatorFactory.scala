@@ -129,7 +129,7 @@ object OperatorFactory extends LogHelper {
       case hop: org.apache.hadoop.hive.ql.exec.GroupByOperator => {
         // For GroupBy, we separate post shuffle from pre shuffle.
         if (GroupByOperator.isPostShuffle(hop)) {
-          _newOperatorInstance(classOf[GroupByPostShuffleOperator], hop)
+          _newOperatorInstance(classOf[GroupByPostShuffleOperator], hop)MapJoin
         } else {
           _newOperatorInstance(classOf[GroupByPreShuffleOperator], hop)
         }
