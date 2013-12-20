@@ -44,7 +44,7 @@ object SharkBuild extends Build {
   val YARN_ENABLED = env("SHARK_YARN").getOrElse("false").toBoolean
 
   // Whether to build Shark with Tachyon jar.
-  val TACHYON_ENABLED = true
+  val TACHYON_ENABLED = false
 
   lazy val root = Project(
     id = "root",
@@ -72,6 +72,8 @@ object SharkBuild extends Build {
     retrieveManaged := true,
     resolvers ++= Seq(
       "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/",
+      "JBoss Repository" at "http://repository.jboss.org/nexus/content/repositories/releases/",
+      "Spray Repository" at "http://repo.spray.cc/",
       "Cloudera Repository" at "https://repository.cloudera.com/artifactory/cloudera-repos/",
       "Local Maven" at Path.userHome.asFile.toURI.toURL + ".m2/repository"
     ),
@@ -126,6 +128,7 @@ object SharkBuild extends Build {
       // Test infrastructure
       "org.scalatest" %% "scalatest" % "1.9.1" % "test",
       "junit" % "junit" % "4.10" % "test",
+      // jets3t 0.9.0 introduces httpcore 4.1.2 as a dependency which my (Yin's) machine always fails to download.
       "net.java.dev.jets3t" % "jets3t" % "0.7.1",
       "com.novocode" % "junit-interface" % "0.8" % "test") ++
       (if (YARN_ENABLED) Some("org.apache.spark" %% "spark-yarn" % SPARK_VERSION) else None).toSeq ++
